@@ -1,0 +1,12 @@
+{
+  "serverUrl": "http://127.0.0.1:8099",
+  "username": "",
+  "password": "",
+  "movieFolder": "KodiTest/Movies",
+  "musicFolder": "KodiTest/Music",
+  "albumFolder": "KodiTest/Music/Albums",
+  "tvFolder": "KodiTest/TV",
+  "coverFolder": "KodiTest/covers",
+  "downloadCovers": true,
+  "filenameFormat": "title"
+}

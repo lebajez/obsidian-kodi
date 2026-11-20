@@ -1,0 +1,12 @@
+{
+  "serverUrl": "http://192.168.1.19:8080/jsonrpc",
+  "username": "",
+  "password": "",
+  "movieFolder": "Kodi/Movies",
+  "musicFolder": "Kodi/Music",
+  "albumFolder": "Kodi/Music/Albums",
+  "tvFolder": "Kodi/TV",
+  "coverFolder": "Kodi/covers",
+  "downloadCovers": true,
+  "filenameFormat": "title"
+}

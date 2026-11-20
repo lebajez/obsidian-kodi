@@ -1,0 +1,10 @@
+{
+  "serverUrl": "http://localhost:9091",
+  "libraryId": "Calibre_Library",
+  "username": "",
+  "password": "",
+  "bookFolder": "Knowledge/Media DB/Books",
+  "coverFolder": "Knowledge/Media DB/Books/cover",
+  "downloadCovers": true,
+  "filenameFormat": "title"
+}
