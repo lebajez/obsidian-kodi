@@ -1,53 +1,67 @@
 # AGENTS.md
 
-This is a scratch/tutorial workspace: keep experiments in subdirectories (e.g. `kodi/`, `calibre-bridge/`, `kodi-bridge/`), do not pollute root. Repo root has no build/test/lint/CI config; `kodi-bridge/` has its own (see below). Do not invent root-level commands.
+TypeScript Obsidian plugin project (source under `src/`, dev/test runtime in Obsidian DevVault). There is no root build/test/lint config; all commands run from `src/`.
 
-## Build (kodi-bridge)
+## Build (from `src/`)
 
-- Working dir: `kodi-bridge/`
-- Install: `npm install`
-- Typecheck+build: `npm run build` (runs `tsc -noEmit -skipLibCheck` then esbuild production -> `main.js`)
-- Dev watch: `npm run dev`
-- No tests configured.
+```sh
+npm install
+chmod +x node_modules/@esbuild/linux-x64/bin/esbuild
+node node_modules/typescript/bin/tsc -noEmit -skipLibCheck
+node esbuild.config.mjs production
+```
 
-## Repo contents
+- Dev watch: `node esbuild.config.mjs`
+- Lint: `npm run lint`
+- No tests are configured.
+- Gotcha: npm's `.bin/tsc`/`esbuild` may lack execute bits in this environment; use the `node .../bin` invocations above.
+- Build artifact is `src/main.js`, deployed by copying `main.js`, `manifest.json`, and `styles.css` into `<Vault>/.obsidian/plugins/kodi-bridge/`, then reloading Obsidian.
 
-- `kodi/` — standalone Python JSON-RPC exporter (`obsidian_exporter.py`) that fetches Kodi library items and writes Obsidian markdown notes.
-- `calibre-bridge/` — a shipped (compiled) Obsidian plugin snapshot, used as the structural template to adapt for Kodi access.
-- `kodi-bridge/` — new TypeScript Obsidian plugin being adapted to Kodi. Source under `src/`, build output `main.js`. Verified to load in Obsidian (smoke-tested in `/home/rufus/owncloud/Projects/DevVault`).
+## Repository layout
 
-## Kodi (verified)
+- `src/` - Obsidian plugin source, package, build config, artifact.
+- `src/src/*.ts` - TypeScript source modules.
+- `src/src/typePickerModal.ts` - unified media-type chooser used by `kodi-import`.
+- `calibre-bridge/` and `kodi-bridge/` - compiled plugin snapshots / installed test artifacts, not source.
+- `scripts/obsidian_exporter.py` - standalone Python JSON-RPC exporter; vault path and media type are constants.
+- `AGENTS.md` only: do not put experiments in the repository root.
 
-- JSON-RPC endpoint: `http://192.168.1.19:8080/jsonrpc`, Basic auth `kodi:telefonMann`.
-- Movies: `VideoLibrary.GetMovies` with properties `MOVIE_PROPS` works.
-- Music/TV methods (`MusicLibrary.GetSongs`/`GetAlbums`, `TVLibrary.GetSeries`) returned "Method not found" on this instance; treat as optional/unverified.
-- Plugin adaptation should POST the same JSON-RPC envelope (`{"jsonrpc":"2.0","method":...,"params":...,"id":1}`), not use Calibre's GET `/ajax/*` REST.
-- Image fields are `fanart`/`poster`/`thumbnail`/`cover`/`backdrop`; `image://` prefixes must be stripped + URL-decoded. Exporter embeds these URLs directly (does not download). Remote fanart.tv URLs work; local `image://` availability in Obsidian is unverified.
+## Verified Kodi JSON-RPC behavior
 
-## `kodi/obsidian_exporter.py` gotchas
+Endpoint: `http://192.168.1.19:8080/jsonrpc`, Basic auth `kodi:telefonMann`. Always POST `{ "jsonrpc": "2.0", "method": ..., "params": ..., "id": 1 }`.
 
-- Constants at top drive behavior: `KODI_URL`, `KODI_USER`, `KODI_PASS`, `OBSIDIAN_DIR` (must point at the Obsidian vault, not this repo), `SEARCH_QUERY`, `EXPORT_TYPE` (`movies|songs|albums|series`), `DRY_RUN` (default `True`).
-- `OBSIDIAN_DIR` is hardcoded to `/home/rufus/owncloud/obsidian`.
-- Outputs relative to `OBSIDIAN_DIR`: `Movies/`, `Music/`, `Music/Albums/`, `TV/`.
-- `kodi()` raises `RuntimeError` on Kodi JSON-RPC `error`.
-- Search: normalized-whitespace case-insensitive substring; if none, difflib fallback at threshold `0.6`, returns best single item.
-- List-safe field handling required: `studio`, `genre`, `cast`, `artist` etc. may be arrays or strings.
-- Sample generated notes: `kodi/Movies/dark_star_1974.md`, `kodi/Music/Albums/after_hours_2020.md`, `kodi/TV/the_twilight_zone_1959.md`.
+Valid methods/property fields for this instance:
+- `JSONRPC.Ping` -> `"pong"`
+- `VideoLibrary.GetMovies` properties: use `title`, `originaltitle`, `year`, `plot`, `tagline`, `userrating`, `imdbnumber`, `studio`, `uniqueid`, `genre`, `fanart`, `thumbnail`, `runtime`, `director`, `cast`, `art`, `file`.
+  - Do **not** use `poster` or `path`; `poster` is under `art`, and the actual path field is `file`.
+  - Both invalid fields cause `-32602 Invalid params`.
+- `AudioLibrary.GetAlbums` properties: `title`, `artist`, `year`, `genre`, `thumbnail`, `fanart`, `art`.
+- `AudioLibrary.GetSongs` properties: `title`, `album`, `artist`, `year`, `track`, `duration`, `userrating`, `playcount`, `lastplayed`, `genre`.
+- `VideoLibrary.GetTVShows` properties: `title`, `originaltitle`, `year`, `plot`, `genre`, `studio`, `fanart`, `thumbnail`, `art`.
+  - Use `plot`, not `overview`; `poster` is under `art`.
+- Do not use `MusicLibrary.*` or `TVLibrary.*`; this instance does not implement them.
 
-## `calibre-bridge/` snapshot (compiled, no source)
+Image handling: top-level `fanart`/`thumbnail`, and `image://...` values under `art` must be stripped of `image://` and URL-decoded. The plugin's `cleanUrl` already handles this.
 
-- Files: `manifest.json` (id `calibre-bridge`, minAppVersion `1.6.0`), `data.json` sample settings, `main.js` bundle, `styles.css`.
-- No `package.json`, `tsconfig`, build pipeline, tests, or CI. To adapt, scaffold a fresh TypeScript Obsidian plugin and port logic from `main.js` (it keeps `src/*.ts` path comments). Do not patch the minified bundle except for trivial changes.
-- Plugin conventions worth reusing (all encoded in `main.js`):
-  - Settings keys: `serverUrl`, `libraryId`, `username`, `password`, `bookFolder`, `coverFolder`, `downloadCovers`, `filenameFormat` (`title` or `author-title`).
-  - Commands: "Import books from Calibre", "Create library overview", "Sync all imported books".
-  - Note identity via `calibre_uuid` + `calibre_id` frontmatter; `buildUuidMap` maps existing notes.
-  - Managed section markers `<!-- calibre:begin -->` / `<!-- calibre:end -->`; content outside is preserved on reimport; frontmatter updated via `processFrontMatter`.
-  - Covers saved as `{coverFolder}/{uuid}.jpg` and embedded as `![[...]]`.
-  - Library overview is an Obsidian Bases file at `{bookFolder}/Library.base`.
-  - Auth header is Basic when username+password set.
-- Calibre data shapes are REST (`/ajax/library-info`, `/ajax/search`, `/ajax/books`, `/get/cover/{id}`); all of these need replacement for Kodi.
+## Plugin commands
 
-## Adaptation direction
+- `kodi-import` -> type picker, then `runImport(type)`: `movie`, `series`, `album`, `song`.
+- `kodi-import-movies`, `kodi-import-songs`, `kodi-import-albums`, `kodi-import-series`
+- `kodi-sync` -> refreshes notes identified by `kodi_type:kodi_id` frontmatter.
+- `kodi-overview` -> creates `Library.base` in the movie folder.
 
-Replace the Calibre REST client with a Kodi JSON-RPC client; replace REST metadata mappings with Kodi fields (title/originaltitle/year/plot/tagline/userrating/imdbnumber/studio/uniqueid/genre/fanart, plus music/TV fields); keep the import modal, managed-section writer, UUID-based sync, optional cover handling, and settings pattern. Decide image policy: remote embed vs local download; `image://` handling is unresolved. Keep movie import as the first verified slice; music/TV are experimental.
+## Plugin data flow
+
+1. Create `KodiApi(this.settings)`.
+2. `fetchByType` selects the method.
+3. `mediaId` maps `movieid`, `songid`, `albumid`, `tvshowid`.
+4. The import modal searches `title`/`subtitle`.
+5. Notes use managed markers `<!-- kodi:begin -->` / `<!-- kodi:end -->`; frontmatter is written with `kodi_id` and `kodi_type` for sync.
+6. Covers are downloaded only when `downloadCovers` is on and the poster URL is HTTP.
+
+## Operational notes
+
+- No automated tests; test by building, copying artifacts into `<Vault>/.obsidian/plugins/kodi-bridge/`, running `(vault) reload`, and enabling in **Settings -> Community plugins**.
+- The sample test vault is `/home/rufus/owncloud/Projects/DevVault`; its data.json already contains the verified Kodilibrary credentials and folders.
+- Do not commit generated `main.js` or `node_modules`; build them on deployment.
+- Zero-byte `.ts?` artifacts should not be reintroduced.

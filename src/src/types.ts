@@ -32,10 +32,11 @@ export const DEFAULT_SETTINGS: KodiSettings = {
   filenameFormat: "title",
 };
 
+// Kodi's Movie.Fields enum accepts these; "poster" and "path" are NOT valid top-level fields (poster lives under "art", path is "file").
 export const MOVIE_PROPS = [
   "title", "originaltitle", "year", "plot", "tagline",
   "userrating", "imdbnumber", "studio", "uniqueid", "genre",
-  "fanart", "poster", "thumbnail", "runtime", "director", "cast", "path",
+  "fanart", "thumbnail", "runtime", "director", "cast", "art", "file",
 ];
 
 export const SONG_PROPS = [
@@ -43,6 +44,6 @@ export const SONG_PROPS = [
   "userrating", "playcount", "lastplayed", "genre",
 ];
 
-export const ALBUM_PROPS = ["title", "artist", "year", "genre", "thumbnail", "fanart"];
+export const ALBUM_PROPS = ["title", "artist", "year", "genre", "thumbnail", "fanart", "art"];
 
-export const SERIES_PROPS = ["title", "originaltitle", "year", "overview", "fanart", "poster", "thumbnail"];
+export const SERIES_PROPS = ["title", "originaltitle", "year", "plot", "genre", "studio", "fanart", "thumbnail", "art"];

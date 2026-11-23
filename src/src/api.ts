@@ -49,17 +49,17 @@ export class KodiApi {
   }
 
   async getSongs(): Promise<any[]> {
-    const r = await this.rpc("MusicLibrary.GetSongs", { properties: SONG_PROPS });
+    const r = await this.rpc("AudioLibrary.GetSongs", { properties: SONG_PROPS });
     return r?.songs ?? [];
   }
 
   async getAlbums(): Promise<any[]> {
-    const r = await this.rpc("MusicLibrary.GetAlbums", { properties: ALBUM_PROPS });
+    const r = await this.rpc("AudioLibrary.GetAlbums", { properties: ALBUM_PROPS });
     return r?.albums ?? [];
   }
 
   async getSeries(): Promise<any[]> {
-    const r = await this.rpc("TVLibrary.GetSeries", { properties: SERIES_PROPS });
-    return r?.series ?? [];
+    const r = await this.rpc("VideoLibrary.GetTVShows", { properties: SERIES_PROPS });
+    return r?.tvshows ?? [];
   }
 }

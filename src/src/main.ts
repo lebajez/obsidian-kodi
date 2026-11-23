@@ -3,6 +3,7 @@ import { KodiSettings, DEFAULT_SETTINGS, SelectedItem } from "./types";
 import { KodiApi } from "./api";
 import { KodiSettingTab } from "./settings";
 import { KodiImportModal } from "./importModal";
+import { KodiTypePickerModal } from "./typePickerModal";
 import { frontmatterFor, bodyFor, subtitleFor } from "./mapper";
 import {
   ensureFolder, saveCover, createKodiNote, updateKodiNote, buildKodiMap, serializeFrontmatter,
@@ -19,6 +20,7 @@ export default class KodiBridgePlugin extends Plugin {
     this.registerPropertyTypes();
     this.addSettingTab(new KodiSettingTab(this.app, this));
 
+    this.addCommand({ id: "kodi-import", name: "Import media from Kodi (choose type)", callback: () => new KodiTypePickerModal(this.app, (type: string) => void this.runImport(type)).open() });
     this.addCommand({ id: "kodi-import-movies", name: "Import movies from Kodi", callback: () => void this.runImport("movie") });
     this.addCommand({ id: "kodi-import-songs", name: "Import songs from Kodi", callback: () => void this.runImport("song") });
     this.addCommand({ id: "kodi-import-albums", name: "Import albums from Kodi", callback: () => void this.runImport("album") });

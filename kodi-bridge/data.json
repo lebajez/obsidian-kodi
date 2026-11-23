@@ -1,7 +1,7 @@
 {
-  "serverUrl": "http://127.0.0.1:8099",
-  "username": "",
-  "password": "",
+  "serverUrl": "http://192.168.1.19:8080/jsonrpc",
+  "username": "kodi",
+  "password": "telefonMann",
   "movieFolder": "KodiTest/Movies",
   "musicFolder": "KodiTest/Music",
   "albumFolder": "KodiTest/Music/Albums",

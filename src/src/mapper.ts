@@ -26,7 +26,8 @@ export function frontmatterFor(item: any, type: string, settings: KodiSettings, 
     if (item?.director) out.director = joinList(item?.director);
     const poster = extractImage(item, ["fanart", "poster", "thumbnail", "cover", "backdrop"]);
     if (poster) out.poster = poster;
-    if (item?.path) out.path = item.path;
+    const filePath = item?.file ?? item?.path;
+    if (filePath) out.path = filePath;
     out.kodi_id = id;
     out.kodi_type = "movie";
     if (hasCover) {
@@ -109,7 +110,7 @@ export function bodyFor(item: any, type: string): string {
     if (cast) lines.push(`**Cast:** ${cast}`);
     if (item?.tagline) lines.push(`**Tagline:** ${item.tagline}`);
     if (item?.plot) lines.push("", "## Plot", "", String(item.plot));
-    if (item?.path) lines.push("", "---", "", `**File:** \`${item.path}\``);
+    if (item?.file || item?.path) lines.push("", "---", "", `**File:** \`${item.file ?? item.path}\``);
     return lines.join("\n");
   }
 
@@ -152,7 +153,7 @@ export function bodyFor(item: any, type: string): string {
   // series
   const title = item?.title ?? item?.originaltitle ?? "Unknown";
   const year = item?.year ?? "";
-  const overview = item?.overview ?? "";
+  const overview = item?.plot ?? item?.overview ?? "";
   const lines: string[] = [`# ${title}`, ""];
   if (year) lines.push(`**Year:** ${year}`);
   if (overview) lines.push("", "## Overview", "", String(overview));

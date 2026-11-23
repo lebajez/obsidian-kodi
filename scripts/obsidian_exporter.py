@@ -17,7 +17,7 @@ from urllib.parse import unquote
 KODI_URL = "http://192.168.1.19:8080/jsonrpc"
 KODI_USER = "kodi"
 KODI_PASS = "telefonMann"
-OBSIDIAN_DIR = "/home/rufus/owncloud/obsidian"  # <-- set this to your Obsidian vault root
+OBSIDIAN_DIR = "/home/rufus/owncloud/MyVault"  # <-- set this to your Obsidian vault root
 
 MOVIE_PROPS = [
     "title", "originaltitle", "sorttitle", "year", "plot", "tagline",

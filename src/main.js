@@ -25,7 +25,7 @@ __export(main_exports, {
   default: () => KodiBridgePlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian5 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 
 // src/types.ts
 var DEFAULT_SETTINGS = {
@@ -52,12 +52,12 @@ var MOVIE_PROPS = [
   "uniqueid",
   "genre",
   "fanart",
-  "poster",
   "thumbnail",
   "runtime",
   "director",
   "cast",
-  "path"
+  "art",
+  "file"
 ];
 var SONG_PROPS = [
   "title",
@@ -71,8 +71,8 @@ var SONG_PROPS = [
   "lastplayed",
   "genre"
 ];
-var ALBUM_PROPS = ["title", "artist", "year", "genre", "thumbnail", "fanart"];
-var SERIES_PROPS = ["title", "originaltitle", "year", "overview", "fanart", "poster", "thumbnail"];
+var ALBUM_PROPS = ["title", "artist", "year", "genre", "thumbnail", "fanart", "art"];
+var SERIES_PROPS = ["title", "originaltitle", "year", "plot", "genre", "studio", "fanart", "thumbnail", "art"];
 
 // src/api.ts
 var import_obsidian = require("obsidian");
@@ -125,18 +125,18 @@ var KodiApi = class {
   }
   async getSongs() {
     var _a;
-    const r = await this.rpc("MusicLibrary.GetSongs", { properties: SONG_PROPS });
+    const r = await this.rpc("AudioLibrary.GetSongs", { properties: SONG_PROPS });
     return (_a = r == null ? void 0 : r.songs) != null ? _a : [];
   }
   async getAlbums() {
     var _a;
-    const r = await this.rpc("MusicLibrary.GetAlbums", { properties: ALBUM_PROPS });
+    const r = await this.rpc("AudioLibrary.GetAlbums", { properties: ALBUM_PROPS });
     return (_a = r == null ? void 0 : r.albums) != null ? _a : [];
   }
   async getSeries() {
     var _a;
-    const r = await this.rpc("TVLibrary.GetSeries", { properties: SERIES_PROPS });
-    return (_a = r == null ? void 0 : r.series) != null ? _a : [];
+    const r = await this.rpc("VideoLibrary.GetTVShows", { properties: SERIES_PROPS });
+    return (_a = r == null ? void 0 : r.tvshows) != null ? _a : [];
   }
 };
 
@@ -292,6 +292,34 @@ var KodiImportModal = class extends import_obsidian3.Modal {
   }
 };
 
+// src/typePickerModal.ts
+var import_obsidian4 = require("obsidian");
+var KodiTypePickerModal = class extends import_obsidian4.Modal {
+  constructor(app, onSelect) {
+    super(app);
+    this.onSelect = onSelect;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h3", { text: "Choose media type to import from Kodi" });
+    const row = contentEl.createDiv({ attr: { style: "display:flex;gap:8px;flex-wrap:wrap;margin-top:8px" } });
+    const choices = [
+      ["movie", "Movie"],
+      ["series", "TV show"],
+      ["album", "Music album"],
+      ["song", "Song"]
+    ];
+    for (const [type, label] of choices) {
+      const btn = row.createEl("button", { text: label });
+      btn.addEventListener("click", () => {
+        this.close();
+        this.onSelect(type);
+      });
+    }
+  }
+};
+
 // src/utils.ts
 function joinList(v) {
   if (Array.isArray(v)) {
@@ -355,7 +383,7 @@ function kodiTypeFolder(type, settings) {
 
 // src/mapper.ts
 function frontmatterFor(item, type, settings, hasCover) {
-  var _a, _b, _c, _d, _e, _f;
+  var _a, _b, _c, _d, _e, _f, _g;
   const out = {};
   const id = type === "movie" ? item == null ? void 0 : item.movieid : type === "song" ? item == null ? void 0 : item.songid : type === "album" ? item == null ? void 0 : item.albumid : item == null ? void 0 : item.tvshowid;
   if (type === "movie") {
@@ -383,8 +411,9 @@ function frontmatterFor(item, type, settings, hasCover) {
     const poster2 = extractImage(item, ["fanart", "poster", "thumbnail", "cover", "backdrop"]);
     if (poster2)
       out.poster = poster2;
-    if (item == null ? void 0 : item.path)
-      out.path = item.path;
+    const filePath = (_c = item == null ? void 0 : item.file) != null ? _c : item == null ? void 0 : item.path;
+    if (filePath)
+      out.path = filePath;
     out.kodi_id = id;
     out.kodi_type = "movie";
     if (hasCover) {
@@ -394,7 +423,7 @@ function frontmatterFor(item, type, settings, hasCover) {
   }
   if (type === "song") {
     out.type = "song";
-    out.title = (_c = item == null ? void 0 : item.title) != null ? _c : "Unknown";
+    out.title = (_d = item == null ? void 0 : item.title) != null ? _d : "Unknown";
     const album = joinList(item == null ? void 0 : item.album);
     if (album)
       out.album = album;
@@ -422,7 +451,7 @@ function frontmatterFor(item, type, settings, hasCover) {
   }
   if (type === "album") {
     out.type = "album";
-    out.title = (_d = item == null ? void 0 : item.title) != null ? _d : "Unknown";
+    out.title = (_e = item == null ? void 0 : item.title) != null ? _e : "Unknown";
     if (item == null ? void 0 : item.year)
       out.year = item.year;
     const artist = joinList(item == null ? void 0 : item.artist);
@@ -442,7 +471,7 @@ function frontmatterFor(item, type, settings, hasCover) {
     return out;
   }
   out.type = "tvseries";
-  out.title = (_f = (_e = item == null ? void 0 : item.title) != null ? _e : item == null ? void 0 : item.originaltitle) != null ? _f : "Unknown";
+  out.title = (_g = (_f = item == null ? void 0 : item.title) != null ? _f : item == null ? void 0 : item.originaltitle) != null ? _g : "Unknown";
   if (item == null ? void 0 : item.year)
     out.year = item.year;
   const poster = extractImage(item, ["fanart", "poster", "thumbnail"]);
@@ -459,7 +488,7 @@ function coverName(type, id) {
   return `${type}-${id}.jpg`;
 }
 function bodyFor(item, type) {
-  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r;
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t;
   if (type === "movie") {
     const title2 = (_b = (_a = item == null ? void 0 : item.title) != null ? _a : item == null ? void 0 : item.originaltitle) != null ? _b : "Untitled";
     const year2 = (_c = item == null ? void 0 : item.year) != null ? _c : "";
@@ -485,21 +514,21 @@ function bodyFor(item, type) {
       lines2.push(`**Tagline:** ${item.tagline}`);
     if (item == null ? void 0 : item.plot)
       lines2.push("", "## Plot", "", String(item.plot));
-    if (item == null ? void 0 : item.path)
-      lines2.push("", "---", "", `**File:** \`${item.path}\``);
+    if ((item == null ? void 0 : item.file) || (item == null ? void 0 : item.path))
+      lines2.push("", "---", "", `**File:** \`${(_f = item.file) != null ? _f : item.path}\``);
     return lines2.join("\n");
   }
   if (type === "song") {
-    const title2 = (_f = item == null ? void 0 : item.title) != null ? _f : "Unknown";
+    const title2 = (_g = item == null ? void 0 : item.title) != null ? _g : "Unknown";
     const album = joinList(item == null ? void 0 : item.album);
     const artist = joinList(item == null ? void 0 : item.artist);
-    const track = (_g = item == null ? void 0 : item.track) != null ? _g : "";
-    const year2 = (_h = item == null ? void 0 : item.year) != null ? _h : "";
-    const rating = (_i = item == null ? void 0 : item.userrating) != null ? _i : "";
-    const playcount = (_j = item == null ? void 0 : item.playcount) != null ? _j : "";
-    const lastplayed = (_k = item == null ? void 0 : item.lastplayed) != null ? _k : "";
+    const track = (_h = item == null ? void 0 : item.track) != null ? _h : "";
+    const year2 = (_i = item == null ? void 0 : item.year) != null ? _i : "";
+    const rating = (_j = item == null ? void 0 : item.userrating) != null ? _j : "";
+    const playcount = (_k = item == null ? void 0 : item.playcount) != null ? _k : "";
+    const lastplayed = (_l = item == null ? void 0 : item.lastplayed) != null ? _l : "";
     const genre = joinList(item == null ? void 0 : item.genre);
-    const duration = (_l = item == null ? void 0 : item.duration) != null ? _l : "";
+    const duration = (_m = item == null ? void 0 : item.duration) != null ? _m : "";
     const lines2 = [`# ${title2}`, ""];
     if (artist)
       lines2.push(`**Artist:** ${artist}`);
@@ -522,8 +551,8 @@ function bodyFor(item, type) {
     return lines2.join("\n");
   }
   if (type === "album") {
-    const title2 = (_m = item == null ? void 0 : item.title) != null ? _m : "Unknown";
-    const year2 = (_n = item == null ? void 0 : item.year) != null ? _n : "";
+    const title2 = (_n = item == null ? void 0 : item.title) != null ? _n : "Unknown";
+    const year2 = (_o = item == null ? void 0 : item.year) != null ? _o : "";
     const artist = joinList(item == null ? void 0 : item.artist);
     const genre = joinList(item == null ? void 0 : item.genre);
     const lines2 = [`# ${title2}`, ""];
@@ -535,9 +564,9 @@ function bodyFor(item, type) {
       lines2.push(`**Genres:** ${genre}`);
     return lines2.join("\n");
   }
-  const title = (_p = (_o = item == null ? void 0 : item.title) != null ? _o : item == null ? void 0 : item.originaltitle) != null ? _p : "Unknown";
-  const year = (_q = item == null ? void 0 : item.year) != null ? _q : "";
-  const overview = (_r = item == null ? void 0 : item.overview) != null ? _r : "";
+  const title = (_q = (_p = item == null ? void 0 : item.title) != null ? _p : item == null ? void 0 : item.originaltitle) != null ? _q : "Unknown";
+  const year = (_r = item == null ? void 0 : item.year) != null ? _r : "";
+  const overview = (_t = (_s = item == null ? void 0 : item.plot) != null ? _s : item == null ? void 0 : item.overview) != null ? _t : "";
   const lines = [`# ${title}`, ""];
   if (year)
     lines.push(`**Year:** ${year}`);
@@ -556,7 +585,7 @@ function subtitleFor(item, type) {
 }
 
 // src/noteWriter.ts
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 var BEGIN_MARKER = "<!-- kodi:begin -->";
 var END_MARKER = "<!-- kodi:end -->";
 function serializeFrontmatter(fm) {
@@ -593,7 +622,7 @@ ${inner}
 ${END_MARKER}`;
 }
 async function ensureFolder(app, folder) {
-  const path = (0, import_obsidian4.normalizePath)(folder);
+  const path = (0, import_obsidian5.normalizePath)(folder);
   try {
     if (!app.vault.getAbstractFileByPath(path))
       await app.vault.createFolder(path);
@@ -602,7 +631,7 @@ async function ensureFolder(app, folder) {
 }
 async function saveCover(app, settings, name, data) {
   await ensureFolder(app, settings.coverFolder);
-  const path = (0, import_obsidian4.normalizePath)(`${settings.coverFolder}/${name}`);
+  const path = (0, import_obsidian5.normalizePath)(`${settings.coverFolder}/${name}`);
   await app.vault.adapter.writeBinary(path, data);
 }
 async function createKodiNote(app, itemTitle, fm, managedContent, coverEmbed, folder, filenameFormat) {
@@ -620,7 +649,7 @@ async function createKodiNote(app, itemTitle, fm, managedContent, coverEmbed, fo
 }
 function resolveNewFilePathWithFormat(app, title, folder, filenameFormat) {
   const safe = sanitizeFilename(title);
-  const tryPath = (name) => (0, import_obsidian4.normalizePath)(`${folder}/${name}.md`);
+  const tryPath = (name) => (0, import_obsidian5.normalizePath)(`${folder}/${name}.md`);
   if (filenameFormat === "title-year") {
   }
   if (!app.vault.getAbstractFileByPath(tryPath(safe)))
@@ -694,11 +723,12 @@ function buildKodiMap(app) {
 }
 
 // src/main.ts
-var KodiBridgePlugin = class extends import_obsidian5.Plugin {
+var KodiBridgePlugin = class extends import_obsidian6.Plugin {
   async onload() {
     await this.loadSettings();
     this.registerPropertyTypes();
     this.addSettingTab(new KodiSettingTab(this.app, this));
+    this.addCommand({ id: "kodi-import", name: "Import media from Kodi (choose type)", callback: () => new KodiTypePickerModal(this.app, (type) => void this.runImport(type)).open() });
     this.addCommand({ id: "kodi-import-movies", name: "Import movies from Kodi", callback: () => void this.runImport("movie") });
     this.addCommand({ id: "kodi-import-songs", name: "Import songs from Kodi", callback: () => void this.runImport("song") });
     this.addCommand({ id: "kodi-import-albums", name: "Import albums from Kodi", callback: () => void this.runImport("album") });
@@ -752,16 +782,16 @@ var KodiBridgePlugin = class extends import_obsidian5.Plugin {
   }
   async runImport(type) {
     if (!this.settings.serverUrl) {
-      new import_obsidian5.Notice("Kodi Bridge: Please enter a server URL in settings.");
+      new import_obsidian6.Notice("Kodi Bridge: Please enter a server URL in settings.");
       return;
     }
     const api = new KodiApi(this.settings);
-    const notice = new import_obsidian5.Notice(`Kodi: Fetching ${type}s\u2026`, 0);
+    const notice = new import_obsidian6.Notice(`Kodi: Fetching ${type}s\u2026`, 0);
     try {
       const items = await this.fetchByType(type, api);
       notice.hide();
       if (!items || items.length === 0) {
-        new import_obsidian5.Notice(`Kodi: No ${type}s found.`);
+        new import_obsidian6.Notice(`Kodi: No ${type}s found.`);
         return;
       }
       const list = this.toItems(type, items);
@@ -780,7 +810,7 @@ var KodiBridgePlugin = class extends import_obsidian5.Plugin {
     const folder = kodiTypeFolder(type, this.settings);
     const kodiMap = buildKodiMap(this.app);
     let created = 0, updated = 0, failed = 0;
-    const progress = new import_obsidian5.Notice(`Kodi: Importing 0 / ${selectedIds.length}\u2026`, 0);
+    const progress = new import_obsidian6.Notice(`Kodi: Importing 0 / ${selectedIds.length}\u2026`, 0);
     await ensureFolder(this.app, folder);
     await ensureFolder(this.app, this.settings.coverFolder);
     for (let i = 0; i < selectedIds.length; i++) {
@@ -800,13 +830,13 @@ var KodiBridgePlugin = class extends import_obsidian5.Plugin {
           coverEmbed = `![${(_a = item == null ? void 0 : item.title) != null ? _a : type}](${posterUrl})`;
         }
         if (this.settings.downloadCovers && posterUrl && isHttpUrl(posterUrl)) {
-          const coverPath = (0, import_obsidian5.normalizePath)(`${this.settings.coverFolder}/${coverName2}`);
+          const coverPath = (0, import_obsidian6.normalizePath)(`${this.settings.coverFolder}/${coverName2}`);
           const exists = await this.app.vault.adapter.exists(coverPath);
           if (exists) {
             hasCover = true;
           } else {
             try {
-              const res = await (0, import_obsidian5.requestUrl)({ url: posterUrl, method: "GET" });
+              const res = await (0, import_obsidian6.requestUrl)({ url: posterUrl, method: "GET" });
               await saveCover(this.app, this.settings, coverName2, res.arrayBuffer);
               hasCover = true;
             } catch (e) {
@@ -835,17 +865,17 @@ var KodiBridgePlugin = class extends import_obsidian5.Plugin {
     }
     progress.hide();
     const failMsg = failed > 0 ? `, ${failed} failed` : "";
-    new import_obsidian5.Notice(`Kodi import done: ${created} created, ${updated} updated${failMsg}.`);
+    new import_obsidian6.Notice(`Kodi import done: ${created} created, ${updated} updated${failMsg}.`);
   }
   async runSync() {
     var _a;
     if (!this.settings.serverUrl) {
-      new import_obsidian5.Notice("Kodi Bridge: Please enter a server URL in settings.");
+      new import_obsidian6.Notice("Kodi Bridge: Please enter a server URL in settings.");
       return;
     }
     const kodiMap = buildKodiMap(this.app);
     if (kodiMap.size === 0) {
-      new import_obsidian5.Notice("Kodi Bridge: No imported notes found in vault.");
+      new import_obsidian6.Notice("Kodi Bridge: No imported notes found in vault.");
       return;
     }
     const byType = /* @__PURE__ */ new Map();
@@ -858,7 +888,7 @@ var KodiBridgePlugin = class extends import_obsidian5.Plugin {
     }
     const api = new KodiApi(this.settings);
     for (const [type, ids] of byType) {
-      const progress = new import_obsidian5.Notice(`Kodi: Syncing ${type}s\u2026`, 0);
+      const progress = new import_obsidian6.Notice(`Kodi: Syncing ${type}s\u2026`, 0);
       try {
         const items = await this.fetchByType(type, api);
         const map = /* @__PURE__ */ new Map();
@@ -875,7 +905,7 @@ var KodiBridgePlugin = class extends import_obsidian5.Plugin {
           if (posterUrl && isHttpUrl(posterUrl))
             coverEmbed = `![${(_a = item == null ? void 0 : item.title) != null ? _a : type}](${posterUrl})`;
           const coverName2 = `${type}-${id}.jpg`;
-          const coverPath = (0, import_obsidian5.normalizePath)(`${this.settings.coverFolder}/${coverName2}`);
+          const coverPath = (0, import_obsidian6.normalizePath)(`${this.settings.coverFolder}/${coverName2}`);
           if (this.settings.downloadCovers && posterUrl && isHttpUrl(posterUrl)) {
             const exists = await this.app.vault.adapter.exists(coverPath);
             if (exists || await this.tryDownloadCover(posterUrl, coverPath)) {
@@ -891,11 +921,11 @@ var KodiBridgePlugin = class extends import_obsidian5.Plugin {
         progress.hide();
       }
     }
-    new import_obsidian5.Notice("Kodi sync done.");
+    new import_obsidian6.Notice("Kodi sync done.");
   }
   async tryDownloadCover(url, path) {
     try {
-      const res = await (0, import_obsidian5.requestUrl)({ url, method: "GET" });
+      const res = await (0, import_obsidian6.requestUrl)({ url, method: "GET" });
       await this.app.vault.adapter.writeBinary(path, res.arrayBuffer);
       return true;
     } catch (e) {
@@ -904,7 +934,7 @@ var KodiBridgePlugin = class extends import_obsidian5.Plugin {
   }
   async createOverview() {
     const folder = this.settings.movieFolder;
-    const path = (0, import_obsidian5.normalizePath)(`${folder}/Library.base`);
+    const path = (0, import_obsidian6.normalizePath)(`${folder}/Library.base`);
     const content = `views:
   - type: table
     name: All Movies
@@ -925,9 +955,9 @@ var KodiBridgePlugin = class extends import_obsidian5.Plugin {
         await this.app.vault.modify(existing, content);
       else
         await this.app.vault.create(path, content);
-      new import_obsidian5.Notice(`Kodi Bridge: overview created at ${path}`);
+      new import_obsidian6.Notice(`Kodi Bridge: overview created at ${path}`);
     } catch (e) {
-      new import_obsidian5.Notice(`Kodi Bridge: could not create overview \u2014 ${e instanceof Error ? e.message : String(e)}`);
+      new import_obsidian6.Notice(`Kodi Bridge: could not create overview \u2014 ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 };
