@@ -1,3 +1,6 @@
+Inspired by https://github.com/caioniehues/obsidian-calibre-bridge/tree/main which interface I appreciated.
+This is my first opencode project and also my first productive repo.
+
 # AGENTS.md
 
 TypeScript Obsidian plugin project (source under `src/`, dev/test runtime in Obsidian DevVault). There is no root build/test/lint config; all commands run from `src/`.
